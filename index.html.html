@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koolby224 - Gestion Commerciale</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+:root { --primaire: #6B21A8; --secondaire: #F3E8FF; --succes: #10B981; --alerte: #F59E0B; --danger: #EF4444; --texte: #1F2937; --gris: #6B7280; --clair: #F9FAFB; }
+body { background: #f0f4f8; min-height: 100vh; color: var(--texte); }
+.cache { display: none !important; }
+
+/* === ÉCRAN DE CONNEXION === */
+.ecran-connexion {
+position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+background: linear-gradient(135deg, #6B21A8 0%, #9333EA 100%);
+display: flex; align-items: center; justify-content: center; z-index: 9999;
+padding: 20px;
+}
+.boite-connexion {
+background: white; border-radius: 20px; padding: 40px 30px; width: 100%; max-width: 420px;
+box-shadow: 0 10px 40px rgba(0,0,0,0.2); text-align: center;
+}
+.logo { font-size: 48px; margin-bottom: 10px; }
+.boite-connexion h1 { color: var(--primaire); font-size: 22px; margin-bottom: 5px; }
+.bienvenue { color: var(--gris); font-size: 14px; margin-bottom: 25px; font-style: italic; }
+.champ { margin-bottom: 15px; text-align: left; }
+label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 14px; color: var(--texte); }
+input, select, textarea {
+width: 100%; padding: 12px 15px; border: 2px solid #E5E7EB; border-radius: 10px;
+font-size: 15px; transition: 0.3s;
+}
+input:focus, select:focus { outline: none; border-color: var(--primaire); }
+.btn {
+width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px;
+font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 5px;
+}
+.btn-primaire { background: var(--primaire); color: white; }
+.btn-primaire:hover { background: #5B1894; }
+.btn-secondaire { background: var(--secondaire); color: var(--primaire); }
+.btn-secondaire:hover { background: #E5D4FF; }
+.btn-danger { background: var(--danger); color: white; }
+.message { margin-top: 15px; font-size: 14px; min-height: 20px; }
+.succes { color: var(--succes); }
+.erreur { color: var(--danger); }
+.info-bloc { background: #FFF7ED; border-left: 4px solid var(--alerte); padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; color: #92400E; }
+
+/* === EN-TÊTE === */
+.entete {
+background: var(--primaire); color: white; padding: 15px 20px;
+position: sticky; top: 0; z-index: 100;
+}
+.entete h2 { font-size: 18px; }
+.entete p { font-size: 12px; opacity: 0.8; }
+.deconnexion {
+position: absolute; right: 20px; top: 15px; background: rgba(255,255,255,0.2);
+border: none; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+
+/* === TABLEAU DE BORD === */
+.contenu { padding: 20px; padding-bottom: 90px; }
+.tableau-bord { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
+.carte { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.carte h3 { font-size: 13px; color: var(--gris); margin-bottom: 8px; }
+.carte .valeur { font-size: 24px; font-weight: bold; color: var(--primaire); }
+.carte.alerte { border-left: 4px solid var(--alerte); }
+.carte.impaye { border-left: 4px solid var(--danger); }
+
+/* === ONGLETS EN BAS === */
+.barre-navigation {
+position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex;
+justify-content: space-around; padding: 8px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+z-index: 1000;
+}
+.onglet {
+display: flex; flex-direction: column; align-items: center; padding: 8px 5px;
+font-size: 11px; color: var(--gris); cursor: pointer; border-radius: 8px; min-width: 60px;
+}
+.onglet.actif { color: var(--primaire); background: var(--secondaire); }
+.onglet span { font-size: 20px; margin-bottom: 3px; }
+
+/* === TABLEAUX ET FORMULAIRES === */
+.section { display: none; }
+.section.actif { display: block; }
+.titre-section { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: var(--primaire); }
+.grille-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #F3F4F6; font-size: 14px; }
+th { background: var(--clair); font-weight: 600; color: var(--primaire); }
+.btn-petit { padding: 6px 10px; font-size: 12px; width: auto; margin: 2px; border-radius: 6px; }
+.recherche { margin-bottom: 15px; display: flex; gap: 10px; }
+.recherche input { flex: 1; }
+.ligne-texte { margin-bottom: 10px; font-size: 14px; }
+.ligne-texte strong { color: var(--primaire); }
+
+/* === FACTURE === */
+.facture { background: white; padding: 30px; max-width: 400px; margin: 0 auto; }
+.facture-entete { text-align: center; margin-bottom: 20px; }
+.facture-entete h2 { font-size: 18px; color: var(--primaire); }
+.facture-ligne { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #ddd; font-size: 14px; }
+.facture-total { display: flex; justify-content: space-between; padding: 12px 0; font-weight: bold; font-size: 16px; border-top: 2px solid #333; margin-top: 10px; }
+.cache-impression { display: block; }
+@media print {
+.barre-navigation, .entete, .cache-impression { display: none !important; }
+.ecran-connexion { display: none !important; }
+body { background: white; }
+}
+
+/* === ADMIN === */
+.badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+.badge.actif { background: #D1FAE5; color: #065F46; }
+.badge.bloque { background: #FEE2E2; color: #991B1B; }
+</style>
+</head>
+<body>
+
+<!-- ================= ÉCRAN DE CONNEXION / INSCRIPTION ================= -->
+<div id="ecranConnexion" class="ecran-connexion">
+<div class="boite-connexion">
+<div class="logo">🏪</div>
+<h1>Koolby224</h1>
+<p class="bienvenue" id="texteBienvenue">Koolby224 vous souhaite la bienvenue !</p>
+
+<!-- FORMULAIRE CONNEXION -->
+<div id="formConnexion">
+<div class="champ">
+<label>E-mail</label>
+<input type="email" id="email" placeholder="votre@email.com">
+</div>
+<div class="champ">
+<label>Code d'accès (6 caractères)</label>
+<input type="text" id="codeAcces" placeholder="______" maxlength="6">
+</div>
+<button class="btn btn-primaire" onclick="seConnecter()">Se connecter</button>
+<button class="btn btn-secondaire" onclick="afficherInscription()">S'inscrire gratuitement</button>
+<div id="msgConnexion" class="message"></div>
+</div>
+
+<!-- FORMULAIRE INSCRIPTION -->
+<div id="formInscription" class="cache">
+<div class="champ">
+<label>Nom et Prénom</label>
+<input type="text" id="nomUtilisateur" placeholder="Votre nom complet">
+</div>
+<div class="champ">
+<label>Numéro WhatsApp</label>
+<input type="tel" id="telephoneUser" placeholder="Ex: 620123456">
+</div>
+<div class="champ">
+<label>E-mail</label>
+<input type="email" id="emailInsc">
+</div>
+<button class="btn btn-primaire" onclick="creerCompte()">S'inscrire gratuitement</button>
+<button class="btn btn-secondaire" onclick="afficherConnexion()">Retour</button>
+<div id="msgInsc" class="message"></div>
+</div>
+
+<!-- COMPTE BLOQUÉ -->
+<div id="compteBloque" class="cache">
+<div class="info-bloc" style="background: #FEE2E2; border-color: var(--danger);">
+⏳ Votre période d'essai de 7 jours est terminée.<br><br>
+<strong>Veuillez appeler le 621657979 afin d'obtenir votre code d'accès illimité.</strong>
+</div>
+<div class="champ">
+<label>Entrez votre code d'accès</label>
+<input type="text" id="codeAccesDef" placeholder="______" maxlength="6">
+</div>
+<button class="btn btn-primaire" onclick="activerCompte()">Activer mon compte</button>
+<div id="msgBloque" class="message"></div>
+</div>
+</div>
+</div>
+
+<!-- ================= EN-TÊTE ================= -->
+<div id="enteteApp" class="entete cache">
+<h2 id="nomUtilisateurTitre">🏪 Koolby224 - Gestion Commerciale</h2>
+<p id="statutUtilisateur">Mode essai — 7 jours gratuits</p>
+<button class="deconnexion" onclick="seDeconnecter()">🚪 Déconnexion</button>
+</div>
+
+<!-- ================= CONTENU PRINCIPAL ================= -->
+<div id="contenuApp" class="contenu cache">
+
+<!-- === TABLEAU DE BORD === -->
+<div id="sectionAccueil" class="section actif">
+<div class="titre-section">📊 Tableau de Bord</div>
+<div class="tableau-bord">
+<div class="carte">
+<h3>Produits</h3>
+<div class="valeur" id="nbProduits">0</div>
+</div>
+<div class="carte">
+<h3>Ventes du jour</h3>
+<div class="valeur" id="caJour">0 GNF</div>
+</div>
+<div class="carte impaye">
+<h3>Impayés</h3>
+<div class="valeur" id="totalImpayes">0 GNF</div>
+</div>
+<div class="carte alerte">
+<h3>Alertes Stock</h3>
+<div class="valeur" id="nbAlertes">0</div>
+</div>
+</div>
+
+<!-- ADMIN SEULEMENT : UTILISATEURS CONNECTÉS -->
+<div id="zoneAdmin" class="cache">
+<div class="titre-section">👤 Administration — Utilisateurs</div>
+<table id="tableUtilisateurs">
+<thead>
+<tr>
+<th>Utilisateur</th>
+<th>Téléphone</th>
+<th>Dernière connexion</th>
+<th>Statut</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="listeUtilisateurs"></tbody>
+</table>
+</div>
+
+<!-- === PRODUITS === -->
+<div id="sectionProduits" class="section">
+<div class="titre-section">📦 Gestion des Produits</div>
+<div class="grille-form">
+<div class="champ"><label>Nom du produit</label><input type="text" id="nomProd" placeholder="Nom"></div>
+<div class="champ"><label>Prix d'achat</label><input type="number" id="prixAchat" placeholder="0"></div>
+<div class="champ"><label>Prix de vente</label><input type="number" id="prixVente" placeholder="0"></div>
+<div class="champ"><label>Stock initial</label><input type="number" id="stockProd" placeholder="0"></div>
+<div class="champ"><label>Alerte stock (minimum)</label><input type="number" id="alerteStock" placeholder="5"></div>
+</div>
+<button class="btn btn-primaire" onclick="ajouterProduit()">✅ Enregistrer le produit</button>
+<br><br>
+<table>
+<thead>
+<tr>
+<th>Produit</th>
+<th>Achat</th>
+<th>Vente</th>
+<th>Stock</th>
+<th>Alerte</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="listeProduits"></tbody>
+</table>
+</div>
+
+<!-- === VENTES / PANIER === -->
+<div id="sectionVentes" class="section">
+<div class="titre-section">💰 Nouvelle Vente</div>
+<div class="grille-form">
+<div class="champ"><label>Nom du client</label><input type="text" id="nomClient" placeholder="Nom du client"></div>
+<div class="champ"><label>Téléphone</label><input type="tel" id="telClient" placeholder="620..."></div>
+</div>
+<div class="titre-section" style="font-size:15px; margin-top:15px;">Ajouter au panier</div>
+<div class="grille-form">
+<div class="champ"><label>Produit</label><select id="selProduit"><option value="">-- Choisir --</option></select></div>
+<div class="champ"><label>Quantité</label><input type="number" id="qteVente" value="1" min="1"></div>
+</div>
+<button class="btn btn-secondaire" onclick="ajouterAuPanier()">➕ Ajouter au panier</button>
+<br><br>
+
+<!-- PANIER -->
+<div class="titre-section" style="font-size:15px;">🛒 Panier</div>
+<table>
+<thead>
+<tr>
+<th>Produit</th>
+<th>Prix</th>
+<th>Qté</th>
+<th>Sous-total</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="panier"></tbody>
+<tfoot>
+<tr>
+<th colspan="3">TOTAL</th>
+<th id="totalPanier">0 GNF</th>
+<th></th>
+</tr>
+</tfoot>
+</table>
+<br>
+<div class="grille-form">
+<div class="champ"><label>Montant versé</label><input type="number" id="montantVerser" placeholder="0" oninput="calculerReste()"></div>
+<div class="champ"><label>Reste à payer</label><input type="text" id="resteAPayer" value="0 GNF" readonly style="background:#f9fafb;"></div>
+</div>
+<button class="btn btn-primaire" onclick="finaliserVente()">✅ Finaliser la vente</button>
+<button class="btn btn-secondaire" onclick="viderPanier()">🗑️ Vider le panier</button>
+</div>
+
+<!-- === IMPAYÉS === -->
+<div id="sectionImpayes" class="section">
+<div class="titre-section">⚠️ Crédits Impayés</div>
+<div class="recherche">
+<input type="text" id="rechercheImpaye" placeholder="Rechercher un client..." oninput="afficherImpayes()">
+</div>
+<table>
+<thead>
+<tr>
+<th>Client</th>
+<th>Téléphone</th>
+<th>Montant dû</th>
+<th>Total payé</th>
+<th>Reste dû</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="listeImpayes"></tbody>
+</table>
+</div>
+
+<!-- === FACTURES === -->
+<div id="sectionFactures" class="section">
+<div class="titre-section">🧾 Historique & Factures</div>
+<div class="recherche">
+<input type="text" id="rechercheFacture" placeholder="Rechercher par nom ou téléphone..." oninput="afficherFactures()">
+</div>
+<table>
+<thead>
+<tr>
+<th>N° Facture</th>
+<th>Client</th>
+<th>Date</th>
+<th>Total</th>
+<th>Payé</th>
+<th>Reste</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="listeFactures"></tbody>
+</table>
+
+<!-- ZONE FACTURE IMPRIMABLE -->
+<div id="zoneFacture" class="cache-impression cache" style="margin-top:25px;">
+<div class="facture" id="factureImprimer">
+<!-- Rempli par le code -->
+</div>
+<div style="text-align:center; margin-top:15px;">
+<button class="btn btn-primaire btn-petit" onclick="window.print()">🖨️ Imprimer</button>
+<button class="btn btn-secondaire btn-petit" onclick="partagerWhatsApp()">📱 Partager WhatsApp</button>
+<button class="btn btn-secondaire btn-petit" onclick="fermerFacture()">❌ Fermer</button>
+</div>
+</div>
+</div>
+
+<!-- === ENTREPRISE === -->
+<div id="sectionEntreprise" class="section">
+<div class="titre-section">🏢 Informations de l'Entreprise</div>
+<div class="grille-form">
+<div class="champ"><label>Nom de l'entreprise</label><input type="text" id="nomEntreprise" placeholder="ENSEB-CLIM"></div>
+<div class="champ"><label>Propriétaire</label><input type="text" id="proprietaire" placeholder="Votre nom"></div>
+<div class="champ"><label>Téléphone</label><input type="text" id="telEntreprise" placeholder="620..."></div>
+<div class="champ"><label>Adresse</label><input type="text" id="adresseEntreprise" placeholder="Votre adresse"></div>
+<div class="champ"><label>N° RCCM</label><input type="text" id="rccmEntreprise" placeholder="GN.TCC.2024..."></div>
+</div>
+<button class="btn btn-primaire" onclick="sauvegarderEntreprise()">✅ Enregistrer les infos</button>
+<div id="msgEntreprise" class="message"></div>
+</div>
+
+</div>
+
+<!-- === BARRE DE NAVIGATION EN BAS === -->
+<div id="barreNav" class="barre-navigation cache">
+<div class="onglet actif" data-onglet="Accueil"><span>📊</span>Accueil</div>
+<div class="onglet" data-onglet="Produits"><span>📦</span>Produits</div>
+<div class="onglet" data-onglet="Ventes"><span>💰</span>Ventes</div>
+<div class="onglet" data-onglet="Impayes"><span>⚠️</span>Impayés</div>
+<div class="onglet" data-onglet="Factures"><span>🧾</span>Factures</div>
+<div class="onglet" data-onglet="Entreprise"><span>🏢</span>Entreprise</div>
+</div>
+
+<script>
+// ================= CONFIGURATION FIREBASE =================
+// ⚠️ REMPLACEZ ce bloc par VOS propres valeurs depuis Firebase → Paramètres du projet → Vos applications
+const firebaseConfig = {
+apiKey: "REMPLACEZ-PAR-VOTRE-APIKEY",
+authDomain: "REMPLACEZ-PAR-VOTRE-authDomain",
+projectId: "REMPLACEZ-PAR-VOTRE-projectId",
+storageBucket: "REMPLACEZ-PAR-VOTRE-storageBucket",
+messagingSenderId: "REMPLACEZ-PAR-VOTRE-messagingSenderId",
+appId: "REMPLACEZ-PAR-VOTRE-appId"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ================= VARIABLES GLOBALES =================
+let utilisateurActuel = null;
+let panier = [];
+let entrepriseInfo = {};
+let codesAccesValides = {}; // stocké dans Firestore
+let estAdmin = false;
+
+// ================= INITIALISATION =================
+document.addEventListener('DOMContentLoaded', () => {
+verifierSession();
+configurerOnglets();
+chargerEntreprise();
+});
+
+// ================= GESTION DES ONGLETS =================
+function configurerOnglets() {
+document.querySelectorAll('.onglet').forEach(onglet => {
+onglet.addEventListener('click', () => {
+document.querySelectorAll('.onglet').forEach(o => o.classList.remove('actif'));
+onglet.classList.add('actif');
+const nom = onglet.dataset.onglet;
+document.querySelectorAll('.section').forEach(s => s.classList.remove('actif'));
+document.getElementById('section' + nom).classList.add('actif');
+if(nom === 'Produits') chargerProduits();
+if(nom === 'Ventes') chargerListeProduitsSelect();
+if(nom === 'Impayes') afficherImpayes();
+if(nom === 'Factures') afficherFactures();
+});
+});
+}
+
+// ================= AUTHENTIFICATION =================
+function afficherInscription() {
+document.getElementById('formConnexion').classList.add('cache');
+document.getElementById('formInscription').classList.remove('cache');
+document.getElementById('msgConnexion').textContent = '';
+}
+
+function afficherConnexion() {
+document.getElementById('formInscription').classList.add('cache');
+document.getElementById('compteBloque').classList.add('cache');
+document.getElementById('formConnexion').classList.remove('cache');
+}
+
+function genererCodeAcces(longueur = 6) {
+const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+let code = '';
+for(let i = 0; i < longueur; i++) {
+code += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+}
+return code;
+}
+
+async function creerCompte() {
+const nom = document.getElementById('nomUtilisateur').value.trim();
+const tel = document.getElementById('telephoneUser').value.trim();
+const email = document.getElementById('emailInsc').value.trim();
+const msg = document.getElementById('msgInsc');
+
+if(!nom || !tel || !email) {
+msg.textContent = '⚠️ Remplissez tous les champs';
+msg.className = 'message erreur';
+return;
+}
+
+msg.textContent = '⏳ Création en cours...';
+msg.className = 'message';
+
+try {
+const codeAcces = genererCodeAcces(6);
+const dateDebut = new Date().toISOString();
+const dateFin = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+const appareil = getIdentifiantAppareil();
+
+const userCred = await auth.createUserWithEmailAndPassword(email, codeAcces + '@koolby224.com', codeAcces);
+const uid = userCred.user.uid;
+
+await db.collection('utilisateurs').doc(uid).set({
+nom, telephone: tel, email, codeAcces,
+dateDebutEssai: dateDebut, dateFinEssai: dateFin,
+actif: true, appareilLie: appareil, estAdmin: false,
+dateCreation: firebase.firestore.FieldValue.serverTimestamp()
+});
+
+msg.innerHTML = `✅ Compte créé !<br>Votre code d'accès : <strong>${codeAcces}</strong><br>Conservez-le bien !`;
+msg.className = 'message succes';
+setTimeout(() => { afficherConnexion(); }, 3000);
+} catch(error) {
+msg.textContent = '❌ ' + error.message;
+msg.className = 'message erreur';
+}
+}
+
+function getIdentifiantAppareil() {
+let id = localStorage.getItem('idAppareil');
+if(!id) {
+id = 'APPAREIL-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+localStorage.setItem('idAppareil', id);
+}
+return id;
+}
+
+async function seConnecter() {
+const email = document.getElementById('email').value.trim();
+const code = document.getElementById('codeAcces').value.trim().toUpperCase();
+const msg = document.getElementById('msgConnexion');
+
+if(!email || !code) {
+msg.textContent = '⚠️ Entrez votre e-mail et votre code';
+msg.className = 'message erreur';
+return;
+}
+
+msg.textContent = '⏳ Connexion...';
+msg.className = 'message';
+
+try {
+const userCred = await auth.signInWithEmailAndPassword(email, code + '@koolby224.com');
+const uid = userCred.user.uid;
+const doc = await db.collection('utilisateurs').doc(uid).get();
+
+if(!doc.exists) throw new Error('Utilisateur introuvable');
+
+const data = doc.data();
+const appareil = getIdentifiantAppareil();
+
+// Vérifier l'appareil lié
+if(data.appareilLie !== appareil) {
+await auth.signOut();
+throw new Error('❌ Ce code est déjà utilisé sur un autre appareil.');
+}
+
+// Vérifier la période d'essai
+const dateFin = new Date(data.dateFinEssai);
+const maintenant = new Date();
+
+if(maintenant > dateFin && !data.actif) {
+afficherEcranBloque(uid);
+return;
+}
+
+// Enregistrer la connexion
+utilisateurActuel = { uid, ...data };
+estAdmin = data.estAdmin || false;
+localStorage.setItem('utilisateurActuel', JSON.stringify(utilisateurActuel));
+
+await db.collection('utilisateurs').doc(uid).update({ derniereConnexion: new Date().toISOString() });
+
+msg.textContent = '✅ Connexion réussie !';
+msg.className = 'message succes';
+setTimeout(() => { ouvrirApplication(); }, 800);
+} catch(error) {
+msg.textContent = error.message;
+msg.className = 'message erreur';
+}
+}
+
+function afficherEcranBloque(uid) {
+document.getElementById('formConnexion').classList.add('cache');
+document.getElementById('compteBloque').classList.remove('cache');
+document.getElementById('compteBloque').dataset.uid = uid;
+}
+
+async function activerCompte() {
+const uid = document.getElementById('compteBloque').dataset.uid;
+const code = document.getElementById('codeAccesDef').value.trim().toUpperCase();
+const msg = document.getElementById('msgBloque');
+
+if(code.length !== 6) {
+msg.textContent = '⚠️ Entrez un code de 6 caractères';
+msg.className = 'message erreur';
+return;
+}
+
+// Vérifier dans la collection des codes valides
+const snapshot = await db.collection('codesAcces').where('code', '==', code).where('utilise', '==', false).get();
+
+if(snapshot.empty) {
+msg.textContent = '❌ Code invalide ou déjà utilisé';
+msg.className = 'message erreur';
+return;
+}
+
+try {
+// Activer le compte pour toujours
+await db.collection('utilisateurs').doc(uid).update({
+actif: true,
+dateFinEssai: new Date(9999, 11, 31).toISOString() // Illimité
+});
+
+// Marquer le code comme utilisé
+snapshot.forEach(async doc => {
+await doc.ref.update({ utilise: true, uidUtilisateur: uid, dateUtilisation: new Date().toISOString() });
+});
+
+msg.textContent = '✅ Compte activé ! Connexion en cours...';
+msg.className = 'message succes';
+setTimeout(() => {
+document.getElementById('compteBloque').classList.add('cache');
+afficherConnexion();
+}, 1500);
+} catch(error) {
+msg.textContent = '❌ ' + error.message;
+msg.className = 'message erreur';
+}
+}
+
+function verifierSession() {
+const stocke = localStorage.getItem('utilisateurActuel');
+if(stocke) {
+utilisateurActuel = JSON.parse(stocke);
+const dateFin = new Date(utilisateurActuel.dateFinEssai);
+const maintenant = new Date();
+if(maintenant < dateFin || utilisateurActuel.actif) {
+ouvrirApplication();
+}
+}
+}
+
+function ouvrirApplication() {
+document.getElementById('ecranConnexion').classList.add('cache');
+document.getElementById('enteteApp').classList.remove('cache');
+document.getElementById('contenuApp').classList.remove('cache');
+document.getElementById('barreNav').classList.remove('cache');
+
+document.getElementById('nomUtilisateurTitre').textContent = '🏪 Bonjour, ' + utilisateurActuel.nom;
+const dateFin = new Date(utilisateurActuel.dateFinEssai);
+const maintenant = new Date();
+if(maintenant < dateFin) {
+const joursRestants = Math.ceil((dateFin - maintenant) / (1000 * 60 * 60 * 24));
+document.getElementById('statutUtilisateur').textContent = `Mode essai — ${joursRestants} jour(s) restant(s)`;
+} else {
+document.getElementById('statutUtilisateur').textContent = '✅ Compte illimité';
+}
+
+if(estAdmin) {
+document.getElementById('zoneAdmin').classList.remove('cache');
+chargerListeUtilisateursAdmin();
+}
+
+mettreAJourTableauBord();
+chargerProduits();
+chargerListeProduitsSelect();
+}
+
+function seDeconnecter() {
+localStorage.removeItem('utilisateurActuel');
+utilisateurActuel = null;
+auth.signOut();
+document.getElementById('ecranConnexion').classList.remove('cache');
+document.getElementById('enteteApp').classList.add('cache');
+document.getElementById('contenuApp').classList.add('cache');
+document.getElementById('barreNav').classList.add('cache');
+document.getElementById('msgConnexion').textContent = '';
+document.getElementById('email').value = '';
+document.getElementById('codeAcces').value = '';
+}
+
+// ================= ADMIN : VOIR TOUS LES UTILISATEURS =================
+async function chargerListeUtilisateursAdmin() {
+const tbody = document.getElementById('listeUtilisateurs');
+tbody.innerHTML = '';
+
+const snapshot = await db.collection('utilisateurs').get();
+snapshot.forEach(doc => {
+const u = doc.data();
+const dateFin = new Date(u.dateFinEssai);
+const maintenant = new Date();
+const derniereConnexion = u.derniereConnexion 
+? new Date(u.derniereConnexion).toLocaleString('fr-FR')
+: 'Jamais';
+
+// Déterminer le statut
+let statutTexte, statutClasse;
+if(!u.actif) {
+statutTexte = 'Bloqué';
+statutClasse = 'bloque';
+} else if(u.appareilLie === 'DECONNECTE') {
+statutTexte = 'Déconnecté';
+statutClasse = '';
+} else if(maintenant < dateFin) {
+statutTexte = 'Actif (Essai)';
+statutClasse = 'actif';
+} else {
+statutTexte = 'Actif (Illimité)';
+statutClasse = 'actif';
+}
+
+tbody.innerHTML += `
+<tr>
+<td><strong>${u.nom}</strong>${u.estAdmin ? ' 👑' : ''}<br><small style="color:#888;">${u.email}</small></td>
+<td>${u.telephone}</td>
+<td style="font-size:12px;">${derniereConnexion}</td>
+<td><span class="badge ${statutClasse}">${statutTexte}</span></td>
+<td>
+${u.estAdmin ? '' : `
+<button class="btn btn-secondaire btn-petit" onclick="deconnecterUtilisateur('${doc.id}')" title="Déconnecter">🔌 Déconnecter</button>
+<button class="btn ${u.actif ? 'btn-danger' : 'btn-primaire'} btn-petit" onclick="basculerStatutUtilisateur('${doc.id}', ${u.actif})">
+${u.actif ? '🚫 Bloquer' : '✅ Débloquer'}
+</button>
+`}
+</td>
+</tr>`;
+});
+}
+
+async function deconnecterUtilisateur(uid) {
+if(!confirm('Déconnecter cet utilisateur ?\nIl devra se reconnecter avec son code d\'accès.')) return;
+await db.collection('utilisateurs').doc(uid).update({ appareilLie: 'DECONNECTE' });
+alert('✅ Utilisateur déconnecté.\nIl devra saisir son code à nouveau.');
+chargerListeUtilisateursAdmin();
+}
+
+async function basculerStatutUtilisateur(uid, estActif) {
+if(estActif) {
+if(!confirm('⚠️ Bloquer cet utilisateur ?\nIl ne pourra plus accéder à l\'application du tout.')) return;
+await db.collection('utilisateurs').doc(uid).update({ actif: false, appareilLie: 'BLOQUE' });
+alert('✅ Utilisateur BLOQUÉ. Accès refusé.');
+} else {
+if(!confirm('✅ Débloquer cet utilisateur ?\nIl retrouvera son accès.')) return;
+await db.collection('utilisateurs').doc(uid).update({ actif: true, appareilLie: getIdentifiantAppareil() });
+alert('✅ Utilisateur DÉBLOQUÉ. Accès rétabli.');
+}
+chargerListeUtilisateursAdmin();
+}
+
+
+// ================= PRODUITS =================
+async function ajouterProduit() {
+const nom = document.getElementById('nomProd').value.trim();
+const achat = parseFloat(document.getElementById('prixAchat').value) || 0;
+const vente = parseFloat(document.getElementById('prixVente').value) || 0;
+const stock = parseInt(document.getElementById('stockProd').value) || 0;
+const alerte = parseInt(document.getElementById('alerteStock').value) || 5;
+
+if(!nom) { alert('⚠️ Entrez un nom de produit'); return; }
+
+await db.collection('produits').add({
+nom, prixAchat: achat, prixVente: vente, stockActuel: stock, seuilAlerte: alerte,
+uidCreateur: utilisateurActuel.uid, date: new Date().toISOString()
+});
+
+document.getElementById('nomProd').value = '';
+document.getElementById('prixAchat').value = '';
+document.getElementById('prixVente').value = '';
+document.getElementById('stockProd').value = '';
+document.getElementById('alerteStock').value = '';
+
+chargerProduits();
+chargerListeProduitsSelect();
+mettreAJourTableauBord();
+}
+
+async function chargerProduits() {
+const tbody = document.getElementById('listeProduits');
+tbody.innerHTML = '';
+let alertes = 0;
+
+const snapshot = await db.collection('produits').where('uidCreateur', '==', utilisateurActuel.uid).get();
+snapshot.forEach(doc => {
+const p = doc.data();
+const alerte = p.stockActuel <= p.seuilAlerte;
+if(alerte) alertes++;
+tbody.innerHTML += `
+<tr ${alerte ? 'style="background:#FFFBEB;"' : ''}>
+<td><strong>${p.nom}</strong></td>
+<td>${p.prixAchat} GNF</td>
+<td>${p.prixVente} GNF</td>
+<td style="font-weight:${alerte ? 'bold;color:var(--alerte)' : 'normal'}">${p.stockActuel}</td>
+<td>${p.seuilAlerte}</td>
+<td>
+<button class="btn btn-danger btn-petit" onclick="supprimerProduit('${doc.id}')">🗑️</button>
+</td>
+</tr>`;
+});
+document.getElementById('nbAlertes').textContent = alertes;
+document.getElementById('nbProduits').textContent = snapshot.size;
+}
+
+async function supprimerProduit(id) {
+if(!confirm('Supprimer ce produit ?')) return;
+await db.collection('produits').doc(id).delete();
+chargerProduits();
+chargerListeProduitsSelect();
+mettreAJourTableauBord();
+}
+
+async function chargerListeProduitsSelect() {
+const sel = document.getElementById('selProduit');
+sel.innerHTML = '<option value="">-- Choisir un produit --</option>';
+
+const snapshot = await db.collection('produits').where('uidCreateur', '==', utilisateurActuel.uid).get();
+snapshot.forEach(doc => {
+const p = doc.data();
+sel.innerHTML += `<option value="${doc.id}" data-prix="${p.prixVente}">${p.nom} — ${p.prixVente} GNF</option>`;
+});
+}
+
+// ================= PANIER & VENTES =================
+function ajouterAuPanier() {
+const sel = document.getElementById('selProduit');
+const idProd = sel.value;
+const qte = parseInt(document.getElementById('qteVente').value) || 1;
+
+if(!idProd) { alert('⚠️ Sélectionnez un produit'); return; }
+
+const nomProd = sel.options[sel.selectedIndex].text.split(' — ')[0];
+const prix = parseFloat(sel.selectedOptions[0].dataset.prix);
+
+const existant = panier.find(item => item.id === idProd);
+if(existant) {
+existant.quantite += qte;
+} else {
+panier.push({ id: idProd, nom: nomProd, prixUnitaire: prix, quantite: qte });
+}
+
+document.getElementById('qteVente').value = 1;
+afficherPanier();
+}
+
+function afficherPanier() {
+const tbody = document.getElementById('panier');
+tbody.innerHTML = '';
+let total = 0;
+
+panier.forEach((item, index) => {
+const sousTotal = item.prixUnitaire * item.quantite;
+total += sousTotal;
+tbody.innerHTML += `
+<tr>
+<td>${item.nom}</td>
+<td>${item.prixUnitaire} GNF</td>
+<td>${item.quantite}</td>
+<td><strong>${sousTotal} GNF</strong></td>
+<td><button class="btn btn-danger btn-petit" onclick="retirerDuPanier(${index})">✕</button></td>
+</tr>`;
+});
+
+document.getElementById('totalPanier').innerHTML = `<strong>${total} GNF</strong>`;
+calculerReste();
+}
+
+function retirerDuPanier(index) {
+panier.splice(index, 1);
+afficherPanier();
+}
+
+function viderPanier() {
+panier = [];
+document.getElementById('montantVerser').value = '';
+document.getElementById('resteAPayer').value = '0 GNF';
+afficherPanier();
+}
+
+function calculerReste() {
+const total = panier.reduce((sum, i) => sum + (i.prixUnitaire * i.quantite), 0);
+const verse = parseFloat(document.getElementById('montantVerser').value) || 0;
+const reste = total - verse;
+document.getElementById('resteAPayer').value = reste.toLocaleString('fr-FR') + ' GNF';
+}
+
+async function finaliserVente() {
+if(panier.length === 0) { alert('⚠️ Le panier est vide'); return; }
+
+const nomClient = document.getElementById('nomClient').value.trim() || 'Client sans nom';
+const telClient = document.getElementById('telClient').value.trim() || '';
+const montantVerser = parseFloat(document.getElementById('montantVerser').value) || 0;
+const total = panier.reduce((sum, i) => sum + (i.prixUnitaire * i.quantite), 0);
+const reste = total - montantVerser;
+const numeroFacture = 'FACT-' + Date.now();
+
+if(!confirm(`Confirmer la vente ?\nTotal : ${total.toLocaleString('fr-FR')} GNF\nVersé : ${montantVerser.toLocaleString('fr-FR')} GNF\nReste : ${reste.toLocaleString('fr-FR')} GNF`)) return;
+
+// Mettre à jour les stocks
+const batch = db.batch();
+for(const item of panier) {
+const snap = await db.collection('produits').doc(item.id).get();
+const stockActuel = snap.data().stockActuel - item.quantite;
+batch.update(db.collection('produits').doc(item.id), { stockActuel });
+}
+await batch.commit();
+
+// Enregistrer la facture
+const factureRef = db.collection('factures').doc();
+await factureRef.set({
+numero: numeroFacture,
+nomClient, telephoneClient: telClient,
+produits: panier, total, montantVerser, reste,
+date: new Date().toISOString(), uidCreateur: utilisateurActuel.uid,
+paiements: [{ montant: montantVerser, date: new Date().toISOString() }]
+});
+
+// Mettre à jour ou créer l'impayé client
+if(reste > 0) {
+const impayeSnap = await db.collection('impayes')
+.where('telephoneClient', '==', telClient)
+.where('uidCreateur', '==', utilisateurActuel.uid).get();
+
+if(impayeSnap.empty) {
+await db.collection('impayes').add({
+nomClient, telephoneClient: telClient,
+montantTotalDu: reste, totalPaye: montantVerser, resteDu: reste,
+factures: [factureRef.id], uidCreateur: utilisateurActuel.uid,
+dateCreation: new Date().toISOString()
+});
+} else {
+impayeSnap.forEach(async doc => {
+const data = doc.data();
+const nouveauTotalDu = data.montantTotalDu + reste;
+const nouveauReste = data.resteDu + reste;
+await doc.ref.update({
+montantTotalDu: nouveauTotalDu,
+resteDu: nouveauReste,
+factures: [...(data.factures || []), factureRef.id]
+});
+});
+}
+}
+
+alert('✅ Vente enregistrée ! Facture : ' + numeroFacture);
+viderPanier();
+document.getElementById('nomClient').value = '';
+document.getElementById('telClient').value = '';
+chargerProduits();
+mettreAJourTableauBord();
+}
+
+// ================= IMPAYÉS =================
+async function afficherImpayes() {
+const recherche = document.getElementById('rechercheImpaye').value.toLowerCase();
+const tbody = document.getElementById('listeImpayes');
+tbody.innerHTML = '';
+let totalGlobal = 0;
+
+const snapshot = await db.collection('impayes').where('uidCreateur', '==', utilisateurActuel.uid).get();
+snapshot.forEach(doc => {
+const imp = doc.data();
+if(recherche && !imp.nomClient.toLowerCase().includes(recherche) && !imp.telephoneClient.includes(recherche)) return;
+totalGlobal += imp.resteDu;
+
+tbody.innerHTML += `
+<tr>
+<td><strong>${imp.nomClient}</strong></td>
+<td>${imp.telephoneClient}</td>
+<td>${imp.montantTotalDu.toLocaleString('fr-FR')} GNF</td>
+<td>${imp.totalPaye.toLocaleString('fr-FR')} GNF</td>
+<td style="color:var(--danger); font-weight:bold;">${imp.resteDu.toLocaleString('fr-FR')} GNF</td>
+<td>
+<button class="btn btn-primaire btn-petit" onclick="ouvrirPaiementImpaye('${doc.id}', ${imp.resteDu})">💳 Payer le reste</button>
+</td>
+</tr>`;
+});
+document.getElementById('totalImpayes').textContent = totalGlobal.toLocaleString('fr-FR') + ' GNF';
+}
+
+async function ouvrirPaiementImpaye(idDoc, resteActuel) {
+const montant = prompt(`Montant à payer (reste : ${resteActuel.toLocaleString('fr-FR')} GNF) :`);
+if(!montant) return;
+const montantNum = parseFloat(montant);
+if(isNaN(montantNum) || montantNum <= 0) { alert('❌ Montant invalide'); return; }
+
+const docRef = db.collection('impayes').doc(idDoc);
+const facturesSnap = await db.collection('factures')
+.where('telephoneClient', '==', (await docRef.get()).data().telephoneClient)
+.where('uidCreateur', '==', utilisateurActuel.uid)
+.orderBy('date', 'desc').limit(1).get();
+
+await docRef.update({
+totalPaye: firebase.firestore.FieldValue.increment(montantNum),
+resteDu: firebase.firestore.FieldValue.increment(-montantNum)
+});
+
+// Mettre à jour la dernière facture
+if(!facturesSnap.empty) {
+facturesSnap.forEach(async f => {
+const data = f.data();
+await f.ref.update({
+montantVerser: data.montantVerser + montantNum,
+reste: data.reste - montantNum,
+paiements: [...(data.paiements || []), { montant: montantNum, date: new Date().toISOString() }]
+});
+});
+}
+
+alert('✅ Paiement enregistré !');
+afficherImpayes();
+}
+
+// ================= FACTURES =================
+async function afficherFactures() {
+const recherche = document.getElementById('rechercheFacture').value.toLowerCase();
+const tbody = document.getElementById('listeFactures');
+tbody.innerHTML = '';
+
+const snapshot = await db.collection('factures')
+.where('uidCreateur', '==', utilisateurActuel.uid)
+.orderBy('date', 'desc')
+.get();
+
+snapshot.forEach(doc => {
+const f = doc.data();
+const date = new Date(f.date).toLocaleDateString('fr-FR');
+
+if(recherche && 
+!f.nomClient.toLowerCase().includes(recherche) && 
+!f.telephoneClient.includes(recherche)) return;
+
+tbody.innerHTML += `
+<tr>
+<td><strong>${f.numero}</strong></td>
+<td>${f.nomClient}</td>
+<td>${date}</td>
+<td><strong>${f.total.toLocaleString('fr-FR')} GNF</strong></td>
+<td>${f.montantVerser.toLocaleString('fr-FR')} GNF</td>
+<td style="color:${f.reste > 0 ? 'var(--danger)' : 'var(--succes)'}">${f.reste.toLocaleString('fr-FR')} GNF</td>
+<td>
+<button class="btn btn-primaire btn-petit" onclick="voirFacture('${doc.id}')">👁️ Voir</button>
+</td>
+</tr>`;
+});
+}
+
+async function voirFacture(idFacture) {
+const doc = await db.collection('factures').doc(idFacture).get();
+const f = doc.data();
+entrepriseInfo = JSON.parse(localStorage.getItem('entrepriseInfo') || '{}');
+
+const date = new Date(f.date).toLocaleDateString('fr-FR');
+const estPaye = f.reste <= 0;
+
+let html = `
+<div style="text-align:center; margin-bottom:20px;">
+<h2>${entrepriseInfo.nom || 'Koolby224'}</h2>
+<p style="font-size:13px; color:#666;">${entrepriseInfo.adresse || ''} — Tél: ${entrepriseInfo.telephone || ''}</p>
+<p style="font-size:12px; color:#888;">${entrepriseInfo.rccm || ''}</p>
+<hr style="border:none; border-top:1px dashed #ccc; margin:10px 0;">
+<h3>FACTURE N° ${f.numero}</h3>
+<p>Date : ${date}</p>
+</div>
+<div style="margin-bottom:15px;">
+<p><strong>Client :</strong> ${f.nomClient}</p>
+<p><strong>Téléphone :</strong> ${f.telephoneClient || 'Non renseigné'}</p>
+</div>
+<table style="width:100%; border-collapse:collapse; margin:15px 0;">
+<thead>
+<tr style="background:#f5f5f5;">
+<th style="padding:8px; text-align:left; border-bottom:1px solid #ddd;">Désignation</th>
+<th style="padding:8px; text-align:center; border-bottom:1px solid #ddd;">Qté</th>
+<th style="padding:8px; text-align:right; border-bottom:1px solid #ddd;">Prix</th>
+<th style="padding:8px; text-align:right; border-bottom:1px solid #ddd;">Total</th>
+</tr>
+</thead>
+<tbody>`;
+
+f.produits.forEach(p => {
+html += `
+<tr>
+<td style="padding:6px; border-bottom:1px solid #eee;">${p.nom}</td>
+<td style="padding:6px; text-align:center; border-bottom:1px solid #eee;">${p.quantite}</td>
+<td style="padding:6px; text-align:right; border-bottom:1px solid #eee;">${p.prixUnitaire.toLocaleString('fr-FR')} GNF</td>
+<td style="padding:6px; text-align:right; border-bottom:1px solid #eee;">${(p.prixUnitaire * p.quantite).toLocaleString('fr-FR')} GNF</td>
+</tr>`;
+});
+
+html += `
+</tbody>
+</table>
+<div style="margin-top:15px;">
+<div class="facture-ligne"><strong>Total :</strong> <strong>${f.total.toLocaleString('fr-FR')} GNF</strong></div>
+<div class="facture-ligne">Montant versé : ${f.montantVerser.toLocaleString('fr-FR')} GNF</div>
+<div class="facture-ligne" style="font-weight:bold; color:${f.reste > 0 ? 'red' : 'green'};">Reste à payer : ${f.reste.toLocaleString('fr-FR')} GNF</div>
+${estPaye ? '<div style="text-align:center; margin-top:15px; padding:8px; background:#D1FAE5; color:#065F46; border-radius:6px; font-weight:bold;">✅ PAYÉ — LIVRÉ</div>' : ''}
+</div>
+<div style="margin-top:30px; font-size:11px; text-align:center; color:#888;">
+Merci pour votre confiance ! — Koolby224 © ${new Date().getFullYear()}
+</div>`;
+
+document.getElementById('factureImprimer').innerHTML = html;
+document.getElementById('zoneFacture').classList.remove('cache');
+document.getElementById('zoneFacture').dataset.numero = f.numero;
+document.getElementById('zoneFacture').dataset.client = f.nomClient;
+document.getElementById('zoneFacture').dataset.telephone = f.telephoneClient || '';
+}
+
+function fermerFacture() {
+document.getElementById('zoneFacture').classList.add('cache');
+}
+
+function partagerWhatsApp() {
+const numero = document.getElementById('zoneFacture').dataset.telephone;
+const client = document.getElementById('zoneFacture').dataset.client;
+const numeroFacture = document.getElementById('zoneFacture').dataset.numero;
+
+const message = `Bonjour ${client},\nVoici votre facture N° ${numeroFacture} de Koolby224.\nMerci pour votre confiance !`;
+const url = `https://wa.me/${numero}?text=${encodeURIComponent(message)}`;
+
+if(numero) {
+window.open(url, '_blank');
+} else {
+alert('⚠️ Aucun numéro de téléphone pour ce client');
+}
+}
+
+// ================= ENTREPRISE =================
+function sauvegarderEntreprise() {
+entrepriseInfo = {
+nom: document.getElementById('nomEntreprise').value.trim(),
+proprietaire: document.getElementById('proprietaire').value.trim(),
+telephone: document.getElementById('telEntreprise').value.trim(),
+adresse: document.getElementById('adresseEntreprise').value.trim(),
+rccm: document.getElementById('rccmEntreprise').value.trim()
+};
+localStorage.setItem('entrepriseInfo', JSON.stringify(entrepriseInfo));
+document.getElementById('msgEntreprise').textContent = '✅ Informations sauvegardées !';
+document.getElementById('msgEntreprise').className = 'message succes';
+setTimeout(() => { document.getElementById('msgEntreprise').textContent = ''; }, 3000);
+}
+
+function chargerEntreprise() {
+const stocke = localStorage.getItem('entrepriseInfo');
+if(stocke) {
+entrepriseInfo = JSON.parse(stocke);
+document.getElementById('nomEntreprise').value = entrepriseInfo.nom || '';
+document.getElementById('proprietaire').value = entrepriseInfo.proprietaire || '';
+document.getElementById('telEntreprise').value = entrepriseInfo.telephone || '';
+document.getElementById('adresseEntreprise').value = entrepriseInfo.adresse || '';
+document.getElementById('rccmEntreprise').value = entrepriseInfo.rccm || '';
+}
+}
+
+// ================= TABLEAU DE BORD =================
+async function mettreAJourTableauBord() {
+// CA du jour
+const aujourdhui = new Date().toISOString().split('T')[0];
+let caJour = 0;
+
+const facturesSnap = await db.collection('factures')
+.where('uidCreateur', '==', utilisateurActuel.uid)
+.get();
+
+facturesSnap.forEach(doc => {
+const f = doc.data();
+const dateFacture = f.date.split('T')[0];
+if(dateFacture === aujourdhui) {
+caJour += f.total;
+}
+});
+
+document.getElementById('caJour').textContent = caJour.toLocaleString('fr-FR') + ' GNF';
+
+// Total impayés
+let totalImp = 0;
+const impSnap = await db.collection('impayes').where('uidCreateur', '==', utilisateurActuel.uid).get();
+impSnap.forEach(doc => {
+totalImp += doc.data().resteDu;
+});
+document.getElementById('totalImpayes').textContent = totalImp.toLocaleString('fr-FR') + ' GNF';
+}
+
+</script>
+</body>
+</html>
